@@ -48,6 +48,10 @@ df.printSchema()
 
 # COMMAND ----------
 
+display(df)
+
+# COMMAND ----------
+
 # DBTITLE 0,--i18n-0c25ec9e-0ed5-45a5-af81-a7149abfebc4
 # MAGIC %md
 # MAGIC Apply some transformations, producing new streaming DataFrames.
