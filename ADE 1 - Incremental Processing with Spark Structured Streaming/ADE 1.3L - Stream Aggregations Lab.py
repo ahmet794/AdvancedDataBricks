@@ -55,7 +55,10 @@
 # COMMAND ----------
 
 # TODO
-df = FILL_IN
+df = (spark.readStream
+      .format("delta")
+      .load(DA.paths.events)
+      )
 
 # COMMAND ----------
 
@@ -80,10 +83,19 @@ DA.validate_1_1(df)
 
 # COMMAND ----------
 
-# TODO
-spark.FILL_IN
+display(df)
 
-traffic_df = df.FILL_IN
+# COMMAND ----------
+
+from pyspark.sql.functions import approx_count_distinct
+
+
+traffic_df = (df
+              .groupBy("traffic_source")
+              .agg(approx_count_distinct("user_id").alias("active_users"))
+              .sort("traffic_source")
+              )
+display(traffic_df)
 
 # COMMAND ----------
 
@@ -108,6 +120,19 @@ DA.validate_2_1(traffic_df.schema)
 # COMMAND ----------
 
 # TODO
+import matplotlib.pyplot as plt
+
+display(traffic_df)
+# pandas_df = traffic_df.toPandas()
+
+# plt.figure(figsize=(8, 5))
+# plt.bar(pandas_df['traffic_source'], pandas_df['active_users'], color="skyblue")
+
+# plt.xlabel("Traffic Source")
+# plt.ylabel("Active Users")
+# plt.title("Users Traffic")
+
+# plt.show()
 
 # COMMAND ----------
 
@@ -130,7 +155,17 @@ DA.validate_2_1(traffic_df.schema)
 # COMMAND ----------
 
 # TODO
-traffic_query = (traffic_df.FILL_IN
+checkpoint_path = f"{DA.paths.working_dir}/active_users_by_traffic"
+output_path = f"{DA.paths.working_dir}/active_users_by_traffic/output"
+
+traffic_query = (traffic_df
+                 .writeStream
+                 .outputMode('complete')
+                 .format("memory")
+                 .queryName("active_users_by_traffic")
+                 .trigger(processingTime = "1 second")
+                 .option("checkpointLocation", checkpoint_path)
+                 .start(output_path)
 )
 
 # COMMAND ----------
@@ -154,7 +189,7 @@ DA.validate_4_1(traffic_query)
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- TODO
+# MAGIC SELECT * FROM active_users_by_traffic
 
 # COMMAND ----------
 
@@ -184,6 +219,10 @@ DA.validate_4_1(traffic_query)
 # COMMAND ----------
 
 # TODO
+for s in spark.streams.active:
+  print(s.name)
+  s.stop()
+
 
 # COMMAND ----------
 
