@@ -44,12 +44,22 @@ import pyspark.sql.functions as F
 # COMMAND ----------
 
 # TODO
-
-comment="Test: check silver table removes null workout ids and has correct count"
+@dlt.table(
+    comment="Test: check silver table removes null workout ids and has correct count"
+    )
+@dlt.expect_all({
+    "keep_all_rows":"num_rows == 5"
+    "null_ids_removed": "null_ids == 0"
+})
 
 def test_workouts_clean():
    return (
-       FILL_IN
+       dlt.read("workouts_silver")
+       .select("*", F.col("workout_id").isNull().alias("workout_id_null"))
+       .select(
+           F.count("*").alias("num_rows"),
+           F.sum(F.col("workout_id_null").cast("int")).alias("null_ids")
+       )
 )
 
 
@@ -68,12 +78,18 @@ def test_workouts_clean():
 # COMMAND ----------
 
 # TODO
+@dlt.table
+    comment="Test: check that gold table only contains unique workout id"
 
-comment="Test: check that gold table only contains unique workout id"
+@dlt.expect_all({
+    "pk_must_be_unique": "duplicate == 1"
+})
 
 def test_workouts_completed():
    return ( 
-       FILL_IN
+       dlt.read("workouts_completed")
+        .groupby("workout_id")
+        .agg(F.count("workout_id").alias("duplicate"))
 )
 
 
